@@ -1,0 +1,70 @@
+{
+  "name": "typesecure",
+  "version": "0.1.0",
+  "description": "A comprehensive collection of essential cybersecurity utilities with strong typing and runtime validation",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "lint": "eslint src tests --ext .ts",
+    "lint:fix": "eslint src tests --ext .ts --fix",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch",
+    "test:coverage": "jest --config jest.config.js --coverage",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prepublishOnly": "pnpm run lint && pnpm run test && pnpm run build",
+    "preversion": "pnpm run lint",
+    "version": "pnpm run format && git add -A src",
+    "postversion": "git push && git push --tags"
+  },
+  "keywords": [
+    "typescript",
+    "security",
+    "cryptography",
+    "encryption",
+    "hashing",
+    "password",
+    "zod",
+    "typesafe",
+    "cybersecurity"
+  ],
+  "author": "Arvid Berndtsson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arvid-berndtsson/typesecure.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arvid-berndtsson/typesecure/issues"
+  },
+  "homepage": "https://github.com/arvid-berndtsson/typesecure#readme",
+  "packageManager": "pnpm@10.6.3",
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.11",
+    "@typescript-eslint/eslint-plugin": "^8.27.0",
+    "@typescript-eslint/parser": "^8.27.0",
+    "eslint": "^9.23.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.5.3",
+    "ts-jest": "^29.2.6",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "zod": "^3.24.2"
+  },
+  "engines": {
+    "node": "23.7.x"
+  }
+}

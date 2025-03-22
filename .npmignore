@@ -1,0 +1,28 @@
+# Source code
+src/
+tests/
+
+# Development and CI files
+.github/
+.vscode/
+coverage/
+.eslintrc.json
+.prettierrc
+jest.config.js
+jest.setup.ts
+tsconfig.json
+tests/tsconfig.json
+pnpm-lock.yaml
+
+# Git and GitHub specific files
+.git/
+.gitignore
+CITATION.cff
+
+# Documentation not needed in the package
+SECURITY.md
+
+# Misc
+.DS_Store
+*.log
+node_modules/ 

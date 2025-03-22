@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "typesecure"
+abstract: "A comprehensive collection of essential cybersecurity utilities for Node.js applications with strong typing and runtime validation using TypeScript and Zod."
+type: software
+authors:
+  - family-names: "Berndtsson"
+    given-names: "Arvid"
+repository-code: "https://github.com/arvid-berndtsson/typesecure"
+url: "https://github.com/arvid-berndtsson/typesecure"
+license: MIT
+version: 0.1.0
+date-released: 2025-04-22
+keywords:
+  - cybersecurity
+  - encryption
+  - hashing
+  - password-security
+  - typescript
+  - zod
+  - crypto
+  - authentication
+  - aes
+  - sha
+  - pbkdf2
+  - hmac
+  - timing-attack-prevention
