@@ -292,6 +292,42 @@ export function decrypt(
 }
 
 /**
+ * Encrypts a JSON-serializable value and returns the ciphertext.
+ * @param payload - The value to serialize and encrypt
+ * @param key - The encryption key
+ * @param options - Encryption options
+ */
+export function encryptJson<T>(
+  payload: T,
+  key: string,
+  options?: Partial<EncryptionOptions>
+): string {
+  const serialized = JSON.stringify(payload);
+  return encrypt(serialized, key, options);
+}
+
+/**
+ * Decrypts the provided ciphertext and parses the resulting JSON payload.
+ * @param encryptedPayload - The encrypted JSON string
+ * @param key - The decryption key
+ * @param options - Encryption options
+ * @returns The parsed JSON payload
+ */
+export function decryptJson<T>(
+  encryptedPayload: string,
+  key: string,
+  options?: Partial<EncryptionOptions>
+): T {
+  const decrypted = decrypt(encryptedPayload, key, options);
+
+  try {
+    return JSON.parse(decrypted) as T;
+  } catch {
+    throw new Error('Failed to parse decrypted JSON payload');
+  }
+}
+
+/**
  * Generates a random encryption key
  * @param length - Length of the key in bytes
  * @returns A random key as a hex string

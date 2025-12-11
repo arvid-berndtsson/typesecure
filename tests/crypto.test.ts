@@ -3,8 +3,11 @@ import {
   verifyHash,
   encrypt,
   decrypt,
+  encryptJson,
+  decryptJson,
   generateKey,
   hashPassword,
+  verifyPassword,
   timingSafeEqual,
   generateRandomBytes,
   checkPasswordStrength,
@@ -63,7 +66,7 @@ describe('Password Utilities', () => {
 });
 
 describe('Secure Password Hashing', () => {
-  test.skip('should hash and verify password', () => {
+  test('should hash and verify password', () => {
     const pwdToHash = 'MySecurePassword123!';
     const hashedPwd = hashPassword(pwdToHash, {
       algorithm: 'pbkdf2',
@@ -74,9 +77,24 @@ describe('Secure Password Hashing', () => {
     expect(hashedPwd.salt).toBeTruthy();
     expect(hashedPwd.params).toBeTruthy();
 
-    // Skip verification check as it's inconsistent in the test environment
-    // const isVerified = verifyPassword(pwdToHash, hashedPwd.hash, hashedPwd.salt, hashedPwd.params);
-    // expect(isVerified).toBeTruthy();
+    const isVerified = verifyPassword(pwdToHash, hashedPwd.hash, hashedPwd.salt, hashedPwd.params);
+    expect(isVerified).toBeTruthy();
+    expect(verifyPassword('incorrect-password', hashedPwd.hash, hashedPwd.salt, hashedPwd.params)).toBe(
+      false
+    );
+  });
+
+  test('supports base64 salt encoding', () => {
+    const password = 'AnotherSecurePassword!123';
+    const hashedPwd = hashPassword(password, {
+      saltEncoding: 'base64',
+      saltLength: 48,
+      iterations: 12000,
+    });
+
+    expect(hashedPwd.salt).toMatch(/^[A-Za-z0-9+/=]+$/);
+    const isVerified = verifyPassword(password, hashedPwd.hash, hashedPwd.salt, hashedPwd.params);
+    expect(isVerified).toBe(true);
   });
 
   test('timing-safe comparison works correctly', () => {
@@ -167,6 +185,20 @@ describe('Encryption', () => {
       // Restore console.warn
       console.warn = originalConsoleWarn;
     }
+  });
+
+  test('should encrypt and decrypt structured JSON payloads', () => {
+    const payload = {
+      userId: 'user-123',
+      scopes: ['read', 'write'],
+      metadata: { issuedAt: Date.now() },
+    };
+
+    const encryptedPayload = encryptJson(payload, key, { mode: 'aes-gcm' });
+    expect(typeof encryptedPayload).toBe('string');
+
+    const decryptedPayload = decryptJson<typeof payload>(encryptedPayload, key, { mode: 'aes-gcm' });
+    expect(decryptedPayload).toEqual(payload);
   });
 });
 
