@@ -28,6 +28,7 @@ export const PasswordHashOptionsSchema = z.object({
   iterations: z.number().min(1000).default(10000),
   saltLength: z.number().min(16).default(32),
   keyLength: z.number().min(16).default(64),
+  saltEncoding: z.enum(["hex", "base64"]).default("hex"),
 });
 
 export type PasswordHashOptions = z.infer<typeof PasswordHashOptionsSchema>;

@@ -8,6 +8,85 @@ import {
   TimingSafeOptionsSchema,
 } from '../types';
 
+type SaltEncoding = PasswordHashOptions['saltEncoding'];
+
+const saltEncoders: Record<
+  SaltEncoding,
+  {
+    parse: (value: string) => CryptoJS.lib.WordArray;
+    stringify: (value: CryptoJS.lib.WordArray) => string;
+  }
+> = {
+  hex: {
+    parse: (value: string) => {
+      if (!/^[\da-fA-F]+$/.test(value) || value.length % 2 !== 0) {
+        throw new Error('Salt must be a valid hex string.');
+      }
+      return CryptoJS.enc.Hex.parse(value);
+    },
+    stringify: (value: CryptoJS.lib.WordArray) => value.toString(CryptoJS.enc.Hex),
+  },
+  base64: {
+    parse: (value: string) => {
+      if (!value || value.trim().length === 0) {
+        throw new Error('Salt must be a non-empty string.');
+      }
+      return CryptoJS.enc.Base64.parse(value);
+    },
+    stringify: (value: CryptoJS.lib.WordArray) => value.toString(CryptoJS.enc.Base64),
+  },
+};
+
+function stringifySalt(wordArray: CryptoJS.lib.WordArray, encoding: SaltEncoding): string {
+  return saltEncoders[encoding].stringify(wordArray);
+}
+
+function parseSalt(value: string, encoding: SaltEncoding): CryptoJS.lib.WordArray {
+  try {
+    const wordArray = saltEncoders[encoding].parse(value);
+
+    if (!wordArray || !wordArray.sigBytes) {
+      throw new Error('Salt produced an empty word array.');
+    }
+
+    return wordArray;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to parse salt using ${encoding} encoding: ${error.message}`);
+    }
+    throw new Error('Failed to parse salt.');
+  }
+}
+
+function derivePasswordHashValue(
+  password: string,
+  saltWordArray: CryptoJS.lib.WordArray,
+  options: PasswordHashOptions
+): string {
+  const keySize = options.keyLength / 4;
+
+  const derive = (iterations: number) =>
+    CryptoJS.PBKDF2(password, saltWordArray, {
+      keySize,
+      iterations,
+    }).toString(CryptoJS.enc.Hex);
+
+  switch (options.algorithm) {
+    case 'pbkdf2':
+      return derive(options.iterations);
+    case 'argon2':
+      // Simulate higher cost by doubling iterations
+      return derive(options.iterations * 2);
+    case 'bcrypt':
+      // Simulate bcrypt cost factor using PBKDF2 iterations
+      return derive(1024 + (options.iterations % 1024));
+    default:
+      return derive(options.iterations);
+  }
+}
+
+type HashPasswordConfig = Partial<PasswordHashOptions> & { salt?: string };
+
 /**
  * Creates a hash of the input string using the specified algorithm
  * @param input - The string to hash
@@ -104,68 +183,33 @@ export function hmac(input: string, key: string, options?: Partial<HashOptions>)
 }
 
 /**
- * Performs a secure password hashing using PBKDF2 (default), Argon2, or bcrypt simulation
- * Note: This is a simplified implementation. For production, consider using a specialized library
+ * Performs a secure password hashing using PBKDF2 (default), Argon2, or bcrypt simulation.
+ * Note: This is a simplified implementation. For production, consider using a specialized library.
  * @param password - The password to hash
- * @param options - Password hash options
+ * @param options - Password hash options (supports custom salt + encoding)
  * @returns An object containing the hash, salt, and parameters
  */
 export function hashPassword(
   password: string,
-  options?: Partial<PasswordHashOptions>
+  options?: HashPasswordConfig
 ): { hash: string; salt: string; params: PasswordHashOptions } {
   const validatedOptions = PasswordHashOptionsSchema.parse({
     algorithm: options?.algorithm || 'pbkdf2',
     iterations: options?.iterations || 10000,
     saltLength: options?.saltLength || 32,
     keyLength: options?.keyLength || 64,
+    saltEncoding: options?.saltEncoding || 'hex',
   });
 
-  // Generate salt
-  const salt = CryptoJS.lib.WordArray.random(validatedOptions.saltLength / 2).toString(
-    CryptoJS.enc.Hex
-  );
+  const saltWordArray = options?.salt
+    ? parseSalt(options.salt, validatedOptions.saltEncoding)
+    : CryptoJS.lib.WordArray.random(validatedOptions.saltLength);
 
-  let hashedPassword: string;
-
-  switch (validatedOptions.algorithm) {
-    case 'pbkdf2':
-      hashedPassword = CryptoJS.PBKDF2(password, salt, {
-        keySize: validatedOptions.keyLength / 4, // keySize is in 32-bit words
-        iterations: validatedOptions.iterations,
-      }).toString(CryptoJS.enc.Hex);
-      break;
-
-    case 'argon2':
-      // Note: crypto-js doesn't support Argon2 natively
-      // This is a simulation that still uses PBKDF2 with higher iterations
-      // For real Argon2, use argon2 npm package
-      hashedPassword = CryptoJS.PBKDF2(password, salt, {
-        keySize: validatedOptions.keyLength / 4,
-        iterations: validatedOptions.iterations * 2, // Higher iterations to simulate Argon2 costs
-      }).toString(CryptoJS.enc.Hex);
-      break;
-
-    case 'bcrypt':
-      // Note: crypto-js doesn't support bcrypt natively
-      // This is a simulation that uses PBKDF2 with specific parameters
-      // For real bcrypt, use bcrypt npm package
-      hashedPassword = CryptoJS.PBKDF2(password, salt, {
-        keySize: validatedOptions.keyLength / 4,
-        iterations: 1024 + (validatedOptions.iterations % 1024), // bcrypt simulation
-      }).toString(CryptoJS.enc.Hex);
-      break;
-
-    default:
-      hashedPassword = CryptoJS.PBKDF2(password, salt, {
-        keySize: validatedOptions.keyLength / 4,
-        iterations: validatedOptions.iterations,
-      }).toString(CryptoJS.enc.Hex);
-  }
+  const hashedPassword = derivePasswordHashValue(password, saltWordArray, validatedOptions);
 
   return {
     hash: hashedPassword,
-    salt,
+    salt: stringifySalt(saltWordArray, validatedOptions.saltEncoding),
     params: validatedOptions,
   };
 }
@@ -189,9 +233,11 @@ export function verifyPassword(
     iterations: options?.iterations || 10000,
     saltLength: options?.saltLength || 32,
     keyLength: options?.keyLength || 64,
+    saltEncoding: options?.saltEncoding || 'hex',
   });
 
-  const { hash: generatedHash } = hashPassword(password, validatedOptions);
+  const saltWordArray = parseSalt(salt, validatedOptions.saltEncoding);
+  const generatedHash = derivePasswordHashValue(password, saltWordArray, validatedOptions);
 
   // Use timingSafeEqual to prevent timing attacks
   return timingSafeEqual(generatedHash, hash);

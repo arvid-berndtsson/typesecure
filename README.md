@@ -13,6 +13,7 @@ A focused TypeScript cryptography package that provides secure encryption and ha
 - ⏱️ **Timing-Safe Comparison**: Prevent timing attacks with constant-time string comparison.
 - 🚦 **Security Level Assessment**: Analyze and report the security level of encryption configurations.
 - 🔑 **Password Hashing**: PBKDF2 for secure password hashing with salt and configurable iterations.
+- 📦 **JSON Payload Encryption**: Helpers to safely encrypt and decrypt structured data.
 
 ## Installation
 
@@ -32,7 +33,7 @@ pnpm add typesecure
 ### Encryption with Security Assessment
 
 ```typescript
-import { encrypt, decrypt, generateKey, getSecurityLevel, SecurityLevel } from 'typesecure';
+import { encrypt, decrypt, encryptJson, decryptJson, generateKey, getSecurityLevel, SecurityLevel } from 'typesecure';
 
 // Generate a secure key
 const key = generateKey();
@@ -54,6 +55,17 @@ const securityLevel = getSecurityLevel({ mode: 'aes-cbc', padding: 'Pkcs7' });
 if (securityLevel === SecurityLevel.HIGH) {
   console.log('Using high security encryption configuration');
 }
+
+// Encrypt structured JSON payloads end-to-end
+const payload = {
+  userId: 'user-123',
+  scopes: ['read', 'write'],
+  metadata: { issuedAt: Date.now() },
+};
+
+const encryptedPayload = encryptJson(payload, key, { mode: 'aes-gcm', aad: 'session' });
+const decryptedPayload = decryptJson<typeof payload>(encryptedPayload, key, { mode: 'aes-gcm', aad: 'session' });
+console.log(decryptedPayload);
 ```
 
 ### Secure Password Storage
@@ -66,13 +78,15 @@ const { hash, salt, params } = hashPassword('userPassword123', {
   algorithm: 'pbkdf2',
   iterations: 10000,
   saltLength: 32,
-  keyLength: 64
+  keyLength: 64,
+  saltEncoding: 'base64' // Optional: choose 'hex' (default) or 'base64'
 });
 
 // Store hash, salt, and params in your database
 
 // Later, verify the password
 const isValid = verifyPassword('userPassword123', hash, salt, params);
+const isInvalid = verifyPassword('wrong password', hash, salt, params);
 ```
 
 ### Timing-Safe Comparison and Random Bytes Generation
@@ -117,6 +131,8 @@ const signature = hmac('message', 'secret key', {
 
 - `encrypt(text: string, key: string, options?: Partial<EncryptionOptions>): string`
 - `decrypt(encryptedText: string, key: string, options?: Partial<EncryptionOptions>): string`
+- `encryptJson<T>(payload: T, key: string, options?: Partial<EncryptionOptions>): string`
+- `decryptJson<T>(encryptedPayload: string, key: string, options?: Partial<EncryptionOptions>): T`
 - `generateKey(length?: number): string`
 - `getSecurityLevel(options: EncryptionOptions): SecurityLevel`
 
@@ -126,6 +142,8 @@ const signature = hmac('message', 'secret key', {
 - `verifyPassword(password: string, hash: string, salt: string, options?: Partial<PasswordHashOptions>): boolean`
 - `timingSafeEqual(a: string, b: string, options?: Partial<TimingSafeOptions>): boolean`
 - `generateRandomBytes(length?: number, encoding?: 'hex' | 'base64'): string`
+
+`PasswordHashOptions` now include a `saltEncoding` field (`'hex'` by default) so you can store salts in the format that best matches your persistence strategy.
 
 ### Hashing
 
