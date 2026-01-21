@@ -7,16 +7,16 @@ todos:
     status: completed
   - id: browser-support
     content: Add browser build with polyfills and test in major browsers
-    status: pending
+    status: completed
   - id: bundle-size
     content: Optimize bundle size, add tree-shaking analysis, target <10KB gzipped
-    status: pending
+    status: completed
   - id: express-integration
     content: Create Express middleware package/example with request/response sanitization
-    status: pending
+    status: completed
   - id: nextjs-integration
     content: Create Next.js middleware and API route helpers with examples
-    status: pending
+    status: completed
   - id: fastify-plugin
     content: Create Fastify plugin with hooks for request/response
     status: pending
@@ -31,22 +31,22 @@ todos:
     status: pending
   - id: examples-directory
     content: Create examples/ directory with Express, Next.js, NestJS, and edge function examples
-    status: pending
+    status: completed
   - id: migration-guides
     content: Write migration guides for plain strings and other security libraries
     status: pending
   - id: npm-metadata
     content: "Improve npm package metadata: keywords, description, badges, homepage"
-    status: pending
+    status: completed
   - id: logging-adapters
     content: Create logging adapters for Pino, Winston, and Bunyan
     status: pending
   - id: testing-utilities
     content: Add Jest matchers and test helpers for classification and policy testing
-    status: pending
+    status: completed
   - id: typescript-types
     content: "Improve TypeScript types: better inference, utility types, JSDoc examples"
-    status: pending
+    status: completed
 ---
 
 # Long-Term Improvement Plan: Making typesecure a Default Package
