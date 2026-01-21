@@ -1,17 +1,28 @@
 {
   "name": "typesecure",
   "version": "0.2.0",
-  "description": "Type-safe data classification and security enforcement for TypeScript - prevent secrets and PII leaks with compile-time and runtime guarantees",
+  "description": "Classification-first security core for TypeScript. Prevent secrets and PII leaks with type-safe data classification, runtime validation, and policy enforcement. Safe defaults for logs, analytics, network calls, and storage.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
+  "browser": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.mjs"
+    }
+  },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --target es2020 --minify",
+    "build:analyze": "tsup src/index.ts --format esm --dts --target es2020 --minify --metafile",
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
+    "lint:docs": "node scripts/check-docs.js",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watch",
@@ -26,6 +37,7 @@
     "typescript",
     "security",
     "data-classification",
+    "data-protection",
     "pii",
     "secrets",
     "redaction",
@@ -33,7 +45,13 @@
     "zod",
     "typesafe",
     "privacy",
-    "compliance"
+    "compliance",
+    "gdpr",
+    "hipaa",
+    "data-leak-prevention",
+    "runtime-validation",
+    "type-safety",
+    "secure-by-default"
   ],
   "author": "Arvid Berndtsson",
   "license": "MIT",
@@ -65,6 +83,6 @@
     "zod": "^3.25.76"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.0.0"
   }
 }

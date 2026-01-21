@@ -6,7 +6,7 @@ const prettier = require("eslint-config-prettier");
 module.exports = [
   js.configs.recommended,
   {
-    ignores: ["dist/**", "node_modules/**"],
+    ignores: ["dist/**", "node_modules/**", "**/*.d.ts"],
   },
   {
     files: ["**/*.ts"],
@@ -49,7 +49,7 @@ module.exports = [
     },
   },
   {
-    files: ["**/*.test.ts"],
+    files: ["**/*.test.ts", "**/testing.ts"],
     languageOptions: {
       globals: {
         describe: "readonly",

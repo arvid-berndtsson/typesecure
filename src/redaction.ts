@@ -5,20 +5,38 @@ import {
   type DataClassification,
 } from "./classification";
 
+/**
+ * Options for redaction behavior.
+ *
+ * @example
+ * ```ts
+ * const redacted = redact(data, {
+ *   guessByKey: true,
+ *   placeholder: (kind) => `[REDACTED:${kind}]`,
+ *   maxDepth: 10
+ * });
+ * ```
+ */
 export type RedactOptions = Readonly<{
   /**
    * If true, redact values for suspicious keys even if they aren't classified.
    * Defaults to true.
+   *
+   * @default true
    */
   guessByKey?: boolean;
   /**
    * Placeholder format for redacted values.
    * Defaults to "[REDACTED:<kind>]".
+   *
+   * @default (kind) => `[REDACTED:${kind}]`
    */
   placeholder?: (kind: DataClassification | "unknown") => string;
   /**
    * Max depth to traverse to avoid pathological structures.
    * Defaults to 25.
+   *
+   * @default 25
    */
   maxDepth?: number;
 }>;
@@ -39,6 +57,25 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   );
 }
 
+/**
+ * Deeply redact classified data and suspicious keys in objects/arrays.
+ * Returns a new structure with classified values replaced by placeholders.
+ *
+ * @param value - The value to redact (can be any type)
+ * @param options - Redaction options
+ * @returns A redacted copy of the value
+ *
+ * @example
+ * ```ts
+ * const data = {
+ *   email: piiText("user@example.com"),
+ *   password: secretText("secret123"),
+ *   name: "John"
+ * };
+ * const redacted = redact(data);
+ * // { email: "[REDACTED:pii]", password: "[REDACTED:secret]", name: "John" }
+ * ```
+ */
 export function redact<T>(value: T, options?: RedactOptions): T {
   const guessByKey = options?.guessByKey ?? true;
   const placeholder = options?.placeholder ?? defaultPlaceholder;
@@ -95,6 +132,22 @@ export function redact<T>(value: T, options?: RedactOptions): T {
   return walk(value, 0) as T;
 }
 
+/**
+ * Safely stringify JSON with automatic redaction of classified data.
+ * Equivalent to `JSON.stringify(redact(value, options), null, space)`.
+ *
+ * @param value - The value to stringify
+ * @param options - Redaction options
+ * @param space - JSON.stringify spacing (same as JSON.stringify)
+ * @returns A JSON string with classified data redacted
+ *
+ * @example
+ * ```ts
+ * const data = { email: piiText("user@example.com") };
+ * const json = safeJsonStringify(data, undefined, 2);
+ * // '{\n  "email": "[REDACTED:pii]"\n}'
+ * ```
+ */
 export function safeJsonStringify(
   value: unknown,
   options?: RedactOptions,
