@@ -60,14 +60,13 @@ jobs:
       - name: Build package
         run: pnpm run build
 
-      - name: Determine version
+      - name: Determine and update version
         id: version
         shell: bash
         run: |
           if [ "${{ github.event_name }}" == "release" ]; then
             # Extract version from release tag (e.g., v0.2.0 -> 0.2.0)
             VERSION=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//')
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
             # For workflow_dispatch, use the input
             INPUT_VERSION="${{ github.event.inputs.version }}"
@@ -77,22 +76,37 @@ jobs:
               # Specific version provided
               VERSION="$INPUT_VERSION"
             else
-              # Bump version (patch/minor/major) using pnpm
-              VERSION=$(pnpm version "$INPUT_VERSION" --no-git-tag-version | sed 's/^v//')
+              # Calculate next version using semver logic
+              # Split current version into parts
+              IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+              MAJOR="${VERSION_PARTS[0]}"
+              MINOR="${VERSION_PARTS[1]}"
+              PATCH="${VERSION_PARTS[2]}"
+              
+              case "$INPUT_VERSION" in
+                major)
+                  MAJOR=$((MAJOR + 1))
+                  MINOR=0
+                  PATCH=0
+                  ;;
+                minor)
+                  MINOR=$((MINOR + 1))
+                  PATCH=0
+                  ;;
+                patch)
+                  PATCH=$((PATCH + 1))
+                  ;;
+              esac
+              
+              VERSION="$MAJOR.$MINOR.$PATCH"
             fi
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
-
-      - name: Update package.json version
-        shell: bash
-        run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          TARGET_VERSION="${{ steps.version.outputs.version }}"
-          if [ "$CURRENT_VERSION" != "$TARGET_VERSION" ]; then
-            pnpm version "$TARGET_VERSION" --no-git-tag-version
-          else
-            echo "Version already set to $TARGET_VERSION, skipping update"
-          fi
+          
+          # Update package.json version directly without triggering lifecycle scripts
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Updated version to $VERSION"
 
       - name: Publish to npm
         run: |
