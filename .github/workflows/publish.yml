@@ -27,7 +27,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
+          # registry-url not needed with trusted publishing (OIDC)
+          # npm will auto-detect the OIDC environment and registry
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -97,7 +98,8 @@ jobs:
         run: |
           # Use npm publish for trusted publishing (OIDC) support
           # pnpm publish doesn't fully support OIDC yet
-          npm publish --access public
+          # No NODE_AUTH_TOKEN needed - OIDC handles authentication automatically
+          npm publish --access public --registry https://registry.npmjs.org
 
       - name: Create git tag and push
         if: github.event_name == 'workflow_dispatch' && success()
