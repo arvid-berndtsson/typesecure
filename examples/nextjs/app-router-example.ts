@@ -22,7 +22,7 @@ export const config = {
 // app/api/users/route.ts
 /*
 import { createSafeApiHandler, safeLog } from "./examples/nextjs/api-helpers";
-import { piiText, publicText, defaultPolicy } from "typesecure";
+import { piiText, publicText, defaultPolicy, assertAllowed } from "typesecure";
 
 const policy = defaultPolicy();
 
