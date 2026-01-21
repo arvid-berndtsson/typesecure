@@ -83,12 +83,21 @@ jobs:
           fi
 
       - name: Update package.json version
+        shell: bash
         run: |
-          pnpm version ${{ steps.version.outputs.version }} --no-git-tag-version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TARGET_VERSION="${{ steps.version.outputs.version }}"
+          if [ "$CURRENT_VERSION" != "$TARGET_VERSION" ]; then
+            pnpm version "$TARGET_VERSION" --no-git-tag-version
+          else
+            echo "Version already set to $TARGET_VERSION, skipping update"
+          fi
 
       - name: Publish to npm
         run: |
-          pnpm publish --access public --no-git-checks --publish-branch=${{ github.ref_name }}
+          # Use npm publish for trusted publishing (OIDC) support
+          # pnpm publish doesn't fully support OIDC yet
+          npm publish --access public
 
       - name: Create git tag and push
         if: github.event_name == 'workflow_dispatch' && success()
