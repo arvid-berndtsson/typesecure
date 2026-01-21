@@ -1,269 +1,271 @@
-# TypeSecure Default Package Plan
+---
+name: ""
+overview: ""
+todos: []
+---
 
-## Overview
+# Long-Term Improvement Plan: Making typesecure a Default Package
 
-This document outlines the default package setup for `typesecure`, a TypeScript library for classification-first security enforcement. The package follows standard TypeScript/Node.js package best practices with comprehensive tooling and CI/CD integration.
+## Vision
 
-## Package Structure
+Transform `typesecure` into the go-to TypeScript security library that developers automatically include in every project, similar to how `zod` or `lodash` became defaults.
 
-```
-typesecure/
-├── src/                    # Source code
-│   ├── classification.ts   # Data classification types and constructors
-│   ├── policy.ts           # Policy enforcement and audit
-│   ├── redaction.ts        # Redaction utilities
-│   ├── index.ts            # Main entry point (exports)
-│   └── global.d.ts         # Global type definitions
-├── tests/                  # Test files
-│   ├── classification.test.ts
-│   ├── policy.test.ts
-│   ├── redaction.test.ts
-│   └── tsconfig.json       # Test-specific TypeScript config
-├── dist/                   # Build output (generated)
-├── .github/
-│   └── workflows/
-│       └── publish.yml      # CI/CD pipeline
-├── package.json            # Package manifest
-├── tsconfig.json           # TypeScript configuration
-├── jest.config.js          # Jest test configuration
-├── eslint.config.js        # ESLint configuration
-├── .prettierrc             # Prettier configuration
-└── README.md               # Package documentation
-```
+## Current State Analysis
 
-## Configuration Files
+**Strengths:**
 
-### package.json
-- **Name**: `typesecure`
-- **Version**: `0.2.0`
-- **Package Manager**: `pnpm@10.6.3`
-- **Node Engine**: `>=24.0.0`
-- **Main Entry**: `dist/index.js` (CJS), `dist/index.mjs` (ESM)
-- **Types**: `dist/index.d.ts`
+- Solid core API with classification-first approach
+- TypeScript-first design with runtime validation
+- Good test coverage
+- Clean, focused codebase
+- MIT license (permissive)
 
-**Scripts**:
-- `build`: Build package with tsup (CJS + ESM + types)
-- `test`: Run Jest tests
-- `lint`: Run ESLint
-- `format`: Format code with Prettier
-- `prepublishOnly`: Runs lint, test, and build before publishing
+**Gaps:**
 
-**Dependencies**:
-- `zod`: ^3.25.76 (runtime validation)
+- Limited framework integrations (only Express/Next.js examples)
+- No developer tooling (ESLint rules, VS Code extensions)
+- Missing browser/edge runtime compatibility
+- No migration guides or onboarding materials
+- Limited discoverability (keywords, SEO)
+- Node 24+ requirement is restrictive
+- No performance benchmarks or optimization
+- Missing common use-case examples
 
-**Dev Dependencies**:
-- TypeScript tooling (tsup, ts-jest, ts-node)
-- Testing (jest, @types/jest)
-- Linting (eslint, @typescript-eslint/*)
-- Formatting (prettier)
+## Phase 1: Foundation & Developer Experience (Months 1-2)
 
-### TypeScript Configuration (tsconfig.json)
-- **Target**: ES2022
-- **Module**: CommonJS
-- **Strict Mode**: Enabled
-- **Declaration**: Enabled (generates .d.ts files)
-- **Module Resolution**: Node
+### 1.1 Compatibility & Performance
 
-### Build Configuration
-- **Tool**: `tsup`
-- **Formats**: CJS (`dist/index.js`) + ESM (`dist/index.mjs`)
-- **Type Definitions**: Generated automatically
-- **Entry Point**: `src/index.ts`
+- **Lower Node.js requirement**: Support Node 18+ (LTS) instead of 24+ to reach 90%+ of projects
+- **Browser compatibility**: Add browser build with proper polyfills, test in Edge/Chrome/Firefox
+- **Edge runtime support**: Ensure compatibility with Vercel Edge, Cloudflare Workers, Deno Deploy
+- **Bundle size optimization**: 
+- Tree-shaking analysis and optimization
+- Separate entry points for classification-only, redaction-only, policy-only
+- Target <10KB gzipped for core functionality
+- **Performance benchmarks**: Add benchmarks for redaction, policy checks, classification
 
-### Test Configuration (jest.config.js)
-- **Preset**: `ts-jest`
-- **Environment**: Node.js
-- **Test Pattern**: `**/*.test.ts`, `**/__tests__/**/*.ts`
-- **Coverage**: Configured but thresholds set to 0 (no enforcement)
-- **Setup**: `jest.setup.ts`
+### 1.2 TypeScript Excellence
 
-### Linting Configuration (eslint.config.js)
-- **Base**: ESLint recommended + TypeScript ESLint
-- **Rules**:
-  - Explicit function return types required
-  - No `any` types
-  - Strict unsafe operations checks
-  - Prettier integration
-- **Test Files**: Relaxed rules (no-unsafe-* disabled)
+- **Better type inference**: Improve generic constraints for better IDE autocomplete
+- **Type utilities**: Export helper types like `ExtractClassified<T>`, `ClassifiedKeys<T>`
+- **JSDoc improvements**: Add comprehensive JSDoc with examples for all public APIs
+- **TypeScript version compatibility**: Test and document support for TS 4.8+ (not just latest)
 
-## Core Features
+### 1.3 Error Messages & Developer Feedback
 
-### 1. Classification System
-- **Types**: `PublicString`, `PIIString`, `SecretString`, `TokenString`, `CredentialString`
-- **Constructors**: `publicText()`, `piiText()`, `secretText()`, `token()`, `credential()`
-- **Validation**: Zod-backed runtime validation
-- **Reveal**: Explicit `reveal()` function to extract underlying values
+- **Better error messages**: Include actionable guidance in policy violations
+- **Development mode warnings**: Add console warnings for common mistakes (e.g., revealing too early)
+- **Error codes**: Structured error codes for programmatic handling
 
-### 2. Redaction System
-- **Deep Traversal**: Recursively redacts classified data
-- **Key Guessing**: Redacts suspicious keys (password, apiKey, etc.)
-- **Safe Serialization**: `safeJsonStringify()` for JSON output
-- **Logger Adapter**: `safeLoggerAdapter()` for console-like loggers
+## Phase 2: Framework Integrations (Months 2-3)
 
-### 3. Policy Enforcement
-- **Default Policy**: Pre-configured security policy
-- **Actions**: `log`, `network`, `storage`, `analytics`
-- **Enforcement**: `assertAllowed()` throws on policy violations
-- **Audit**: `audit()` returns decision without throwing
-- **Policy Logging**: `policyLog()` combines enforcement + redaction
+### 2.1 HTTP Framework Adapters
 
-## Development Workflow
+Create ready-to-use middleware/plugins for:
 
-### Setup
-```bash
-pnpm install
-```
+- **Express**: Request/response sanitization middleware
+- **Fastify**: Plugin with hooks for request/response
+- **Next.js**: App Router and Pages Router middleware, API route helpers
+- **NestJS**: Decorators, interceptors, guards
+- **Hono**: Middleware for edge runtime
+- **Remix**: Loader/action helpers
 
-### Development
-```bash
-pnpm run dev        # Watch mode build
-pnpm run test:watch # Watch mode tests
-```
+### 2.2 Logging Integrations
 
-### Quality Checks
-```bash
-pnpm run lint       # Check code quality
-pnpm run lint:fix   # Auto-fix linting issues
-pnpm run format     # Format code
-pnpm run test       # Run tests
-pnpm run test:coverage # Run tests with coverage
-```
+Adapters for popular loggers:
 
-### Build
-```bash
-pnpm run build      # Build for production
-```
+- **Pino**: Custom serializer
+- **Winston**: Transport with redaction
+- **Bunyan**: Stream with redaction
+- **Console**: Enhanced safeLoggerAdapter
 
-### Pre-Publish Checklist
-1. ✅ All tests pass (`pnpm test`)
-2. ✅ Linting passes (`pnpm lint`)
-3. ✅ Build succeeds (`pnpm build`)
-4. ✅ Version updated in `package.json`
-5. ✅ CHANGELOG updated (if applicable)
-6. ✅ README reflects current API
+### 2.3 Database & ORM Integrations
 
-## CI/CD Pipeline
+- **Prisma**: Middleware for query sanitization
+- **TypeORM**: Entity listeners for classification
+- **Drizzle**: Query helpers
+- **Sequelize**: Hooks for redaction
 
-### GitHub Actions Workflow (`.github/workflows/publish.yml`)
+### 2.4 API Client Integrations
 
-**Triggers**:
-- Release creation (automatic)
-- Manual workflow dispatch
+- **Fetch wrapper**: Safe fetch with automatic header redaction
+- **Axios**: Interceptor for request/response sanitization
+- **tRPC**: Middleware for procedure input/output
 
-**Steps**:
-1. Checkout code
-2. Setup Node.js 24
-3. Setup pnpm 10.6.3
-4. Install dependencies
-5. Run linter
-6. Run tests
-7. Build package
-8. Determine version (from release tag or input)
-9. Publish to npm (OIDC trusted publishing)
-10. Create git tag and push (if manual dispatch)
+## Phase 3: Developer Tooling (Months 3-4)
 
-**Permissions**:
-- `contents: write` (for git operations)
-- `id-token: write` (for OIDC npm publishing)
+### 3.1 ESLint Plugin
 
-## Publishing Process
+Create `eslint-plugin-typesecure`:
 
-### Automatic (via Release)
-1. Create a GitHub release with tag (e.g., `v0.2.0`)
-2. Workflow automatically:
-   - Extracts version from tag
-   - Runs quality checks
-   - Builds package
-   - Publishes to npm
+- Rule: Warn when `reveal()` is used without policy check
+- Rule: Enforce classification for suspicious variable names
+- Rule: Detect unclassified secrets in string literals
+- Rule: Require policy checks before logging/network calls
+- Auto-fix suggestions for common patterns
 
-### Manual (via Workflow Dispatch)
-1. Go to Actions → "Publish to npm"
-2. Click "Run workflow"
-3. Enter version (patch/minor/major or specific version)
-4. Workflow will:
-   - Calculate version if needed
-   - Run quality checks
-   - Build package
-   - Publish to npm
-   - Create git tag and push
+### 3.2 VS Code Extension
 
-## Testing Strategy
+- **IntelliSense**: Enhanced autocomplete for classification functions
+- **Code actions**: Quick fixes to classify suspicious strings
+- **Hover documentation**: Inline docs for all types and functions
+- **Diagnostics**: Real-time warnings for policy violations
+- **Snippets**: Code snippets for common patterns
 
-### Test Files
-- `classification.test.ts`: Tests classification constructors and type guards
-- `policy.test.ts`: Tests policy enforcement and audit
-- `redaction.test.ts`: Tests redaction and safe serialization
+### 3.3 CLI Tool
 
-### Test Coverage
-- All core functionality is tested
-- Tests use Jest with ts-jest
-- Coverage reporting configured but not enforced
+`typesecure-cli` for:
 
-## Code Quality
+- **Audit**: Scan codebase for potential leaks
+- **Migrate**: Help migrate existing code to use typesecure
+- **Generate**: Generate framework-specific boilerplate
+- **Test**: Test policy configurations
 
-### TypeScript
-- Strict mode enabled
-- Explicit return types required
-- No `any` types allowed (except in tests)
-- Unsafe operations are errors
+### 3.4 Testing Utilities
 
-### Linting
-- ESLint with TypeScript plugin
-- Prettier integration
-- Consistent code style enforced
+- **Jest matchers**: `expect(value).toBeClassifiedAs('secret')`
+- **Test helpers**: Mock policies, test redaction, policy assertions
+- **Coverage**: Track classification coverage in tests
 
-### Best Practices
-- Immutable data structures (Readonly types)
-- Symbol-based type branding for classified data
-- Deep traversal with cycle detection
-- WeakSet/WeakMap for memory efficiency
+## Phase 4: Documentation & Onboarding (Months 4-5)
 
-## Package Distribution
+### 4.1 Comprehensive Documentation
 
-### Build Output
-- **CommonJS**: `dist/index.js`
-- **ESM**: `dist/index.mjs`
-- **Type Definitions**: `dist/index.d.ts`, `dist/index.d.mts`
+- **Getting Started guide**: Step-by-step for first-time users
+- **API Reference**: Auto-generated from JSDoc with search
+- **Migration guides**: From plain strings, from other libraries
+- **Best practices**: Security patterns, common pitfalls
+- **Architecture docs**: How it works internally, design decisions
 
-### Published Files
-Only `dist/` directory is published (configured in `package.json` `files` field).
+### 4.2 Examples & Recipes
 
-### Entry Points
-- **Main**: `dist/index.js` (CommonJS)
-- **Module**: `dist/index.mjs` (ESM)
-- **Types**: `dist/index.d.ts`
+Create `examples/` directory with:
 
-## Maintenance
+- **Basic usage**: Simple classification and redaction
+- **Express app**: Full CRUD API with middleware
+- **Next.js app**: Server and client components
+- **NestJS app**: Full microservice example
+- **Edge function**: Vercel/Cloudflare example
+- **Testing patterns**: Unit, integration, E2E examples
 
-### Dependencies
-- Keep dependencies up to date
-- Use `pnpm update` regularly
-- Check for security vulnerabilities: `pnpm audit`
+### 4.3 Video Tutorials & Blog Posts
 
-### Versioning
-- Follow semantic versioning (semver)
-- Update version in `package.json`
-- Create git tag: `v<version>`
+- **5-minute intro video**: Quick start
+- **Deep dive series**: Architecture, advanced patterns
+- **Case studies**: Real-world adoption stories
+- **Blog posts**: Security best practices, performance tips
 
-### Documentation
-- Keep README.md up to date
-- Document API changes
-- Include usage examples
+### 4.4 Interactive Playground
 
-## Status
+- **Web-based playground**: Try typesecure in browser
+- **Code examples**: Copy-paste ready snippets
+- **Policy builder**: Visual policy configuration
 
-✅ **Package Setup Complete**
-- All configuration files in place
-- Tests passing (9 tests, 3 suites)
-- Build working (CJS + ESM + types)
-- Linting passing
-- CI/CD configured
-- Ready for development and publishing
+## Phase 5: Ecosystem & Community (Months 5-6)
 
-## Next Steps
+### 5.1 Package Metadata & Discoverability
 
-1. Continue feature development
-2. Add more test coverage if needed
-3. Update documentation as API evolves
-4. Monitor and update dependencies
-5. Follow semantic versioning for releases
+- **Better npm keywords**: Add "security", "data-protection", "gdpr", "hipaa", "compliance"
+- **npm badges**: Add badges for version, downloads, license
+- **Package description**: SEO-optimized, clear value proposition
+- **npm homepage**: Link to dedicated website (not just GitHub)
+
+### 5.2 Website & Branding
+
+- **Dedicated website**: typesecure.dev or typesecure.js.org
+- **Landing page**: Clear value prop, quick start, examples
+- **Documentation site**: Using Docusaurus, VitePress, or similar
+- **Logo & branding**: Professional, recognizable brand
+
+### 5.3 Community Building
+
+- **GitHub Discussions**: Q&A, feature requests, show & tell
+- **Discord/Slack**: Community chat for real-time help
+- **Contributing guide**: Clear guidelines for contributors
+- **Code of conduct**: Welcoming community standards
+- **Adopters page**: Showcase companies/projects using typesecure
+
+### 5.4 Integration Showcase
+
+- **"Built with typesecure"**: Badge for projects
+- **Integration list**: Curated list of compatible tools
+- **Community packages**: Encourage ecosystem packages
+
+## Phase 6: Advanced Features (Months 6+)
+
+### 6.1 Enhanced Classification
+
+- **Nested classifications**: Classify parts of objects/arrays
+- **Classification inheritance**: Derived classifications
+- **Custom classifications**: User-defined classification types
+- **Classification metadata**: Add context, tags, expiration
+
+### 6.2 Advanced Policies
+
+- **Conditional policies**: Context-aware policy decisions
+- **Policy composition**: Combine multiple policies
+- **Policy versioning**: Migrate policies safely
+- **Policy templates**: Pre-built policies for common scenarios (GDPR, HIPAA)
+
+### 6.3 Observability & Monitoring
+
+- **Metrics**: Track policy violations, redaction frequency
+- **Audit logging**: Structured audit events
+- **Integration**: Export to Datadog, Sentry, etc.
+- **Dashboards**: Policy compliance visualization
+
+### 6.4 Performance & Scale
+
+- **Lazy evaluation**: Defer redaction until needed
+- **Streaming redaction**: For large payloads
+- **Caching**: Cache policy decisions
+- **Worker threads**: Parallel redaction for large datasets
+
+## Implementation Priorities
+
+### Must-Have (P0)
+
+1. Lower Node.js requirement to 18+
+2. Browser compatibility
+3. Framework integrations (Express, Next.js, Fastify)
+4. ESLint plugin
+5. Comprehensive documentation site
+6. Better npm metadata
+
+### Should-Have (P1)
+
+1. VS Code extension
+2. Logging integrations (Pino, Winston)
+3. Testing utilities
+4. Migration guides
+5. Examples directory
+
+### Nice-to-Have (P2)
+
+1. CLI tool
+2. Website with playground
+3. Advanced features (nested classifications, etc.)
+4. Observability features
+
+## Success Metrics
+
+- **npm downloads**: Target 10K+ weekly downloads within 6 months
+- **GitHub stars**: Target 1K+ stars
+- **Framework adoption**: 5+ framework integrations with examples
+- **Community**: Active discussions, contributions
+- **Enterprise**: At least 3 public case studies
+
+## Technical Debt & Maintenance
+
+- **Dependency updates**: Automated Renovate/Dependabot
+- **CI/CD**: Expand test matrix (Node versions, OS)
+- **Security**: Regular security audits, responsible disclosure
+- **Performance**: Regular benchmark runs, regression detection
+- **Documentation**: Keep docs in sync with code
+
+## Risk Mitigation
+
+- **Breaking changes**: Semantic versioning, migration guides
+- **Performance regressions**: Automated benchmarks
+- **Compatibility issues**: Comprehensive test matrix
+- **Maintenance burden**: Clear contribution guidelines, automated tooling
