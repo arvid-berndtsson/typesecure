@@ -1,4 +1,9 @@
-import { classificationOf, isClassified, reveal, type DataClassification } from './classification';
+import {
+  classificationOf,
+  isClassified,
+  reveal,
+  type DataClassification,
+} from "./classification";
 
 export type RedactOptions = Readonly<{
   /**
@@ -10,7 +15,7 @@ export type RedactOptions = Readonly<{
    * Placeholder format for redacted values.
    * Defaults to "[REDACTED:<kind>]".
    */
-  placeholder?: (kind: DataClassification | 'unknown') => string;
+  placeholder?: (kind: DataClassification | "unknown") => string;
   /**
    * Max depth to traverse to avoid pathological structures.
    * Defaults to 25.
@@ -18,17 +23,19 @@ export type RedactOptions = Readonly<{
   maxDepth?: number;
 }>;
 
-const DEFAULT_SUSPICIOUS_KEY = /pass(word)?|pwd|secret|token|api[_-]?key|auth|bearer|cookie|session|private[_-]?key|ssh|credential/i;
+const DEFAULT_SUSPICIOUS_KEY =
+  /pass(word)?|pwd|secret|token|api[_-]?key|auth|bearer|cookie|session|private[_-]?key|ssh|credential/i;
 
-function defaultPlaceholder(kind: DataClassification | 'unknown'): string {
+function defaultPlaceholder(kind: DataClassification | "unknown"): string {
   return `[REDACTED:${kind}]`;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+    (Object.getPrototypeOf(value) === Object.prototype ||
+      Object.getPrototypeOf(value) === null)
   );
 }
 
@@ -40,7 +47,7 @@ export function redact<T>(value: T, options?: RedactOptions): T {
   const seen = new WeakMap<object, unknown>();
 
   const walk = (v: unknown, depth: number, keyHint?: string): unknown => {
-    if (depth > maxDepth) return placeholder('unknown');
+    if (depth > maxDepth) return placeholder("unknown");
 
     const kind = classificationOf(v);
     if (kind) return placeholder(kind);
@@ -49,10 +56,15 @@ export function redact<T>(value: T, options?: RedactOptions): T {
       // If the value is classified we already handled it above.
       // For suspicious keys, redact primitive values immediately, but still traverse objects/arrays
       // so we can preserve structure and redact nested classified fields with accurate kinds.
-      if (v === null) return placeholder('unknown');
+      if (v === null) return placeholder("unknown");
       const t = typeof v;
-      if (t === 'string' || t === 'number' || t === 'boolean' || t === 'bigint') {
-        return placeholder('unknown');
+      if (
+        t === "string" ||
+        t === "number" ||
+        t === "boolean" ||
+        t === "bigint"
+      ) {
+        return placeholder("unknown");
       }
       // fall through for objects/arrays
     }
@@ -83,7 +95,11 @@ export function redact<T>(value: T, options?: RedactOptions): T {
   return walk(value, 0) as T;
 }
 
-export function safeJsonStringify(value: unknown, options?: RedactOptions, space?: number): string {
+export function safeJsonStringify(
+  value: unknown,
+  options?: RedactOptions,
+  space?: number,
+): string {
   return JSON.stringify(redact(value, options), null, space);
 }
 
@@ -91,13 +107,26 @@ export function safeJsonStringify(value: unknown, options?: RedactOptions, space
  * Convenience logger that will redact classified data and suspicious keys.
  * You can pass your own logger implementation (pino, winston, console, etc).
  */
-export function safeLoggerAdapter(logger: Pick<Console, 'info' | 'warn' | 'error' | 'debug' | 'log'>) {
+export function safeLoggerAdapter(
+  logger: Pick<Console, "info" | "warn" | "error" | "debug" | "log">,
+): {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  log: (...args: unknown[]) => void;
+} {
   return {
-    info: (...args: unknown[]) => logger.info(...args.map((a) => redact(a))),
-    warn: (...args: unknown[]) => logger.warn(...args.map((a) => redact(a))),
-    error: (...args: unknown[]) => logger.error(...args.map((a) => redact(a))),
-    debug: (...args: unknown[]) => logger.debug(...args.map((a) => redact(a))),
-    log: (...args: unknown[]) => logger.log(...args.map((a) => redact(a))),
+    info: (...args: unknown[]): void =>
+      logger.info(...args.map((a) => redact(a))),
+    warn: (...args: unknown[]): void =>
+      logger.warn(...args.map((a) => redact(a))),
+    error: (...args: unknown[]): void =>
+      logger.error(...args.map((a) => redact(a))),
+    debug: (...args: unknown[]): void =>
+      logger.debug(...args.map((a) => redact(a))),
+    log: (...args: unknown[]): void =>
+      logger.log(...args.map((a) => redact(a))),
   };
 }
 
@@ -105,7 +134,8 @@ export function safeLoggerAdapter(logger: Pick<Console, 'info' | 'warn' | 'error
  * Helper for cases where you must emit a raw header value.
  * Prefer using the policy layer to validate crossings before revealing.
  */
-export function httpAuthorizationBearer(tokenValue: import('./classification').TokenString): string {
+export function httpAuthorizationBearer(
+  tokenValue: import("./classification").TokenString,
+): string {
   return `Bearer ${reveal(tokenValue)}`;
 }
-

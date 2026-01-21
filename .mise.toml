@@ -1,2 +1,29 @@
 [tools]
 node = "24"
+pnpm = "10.6.3"
+
+[tasks.lint]
+description = "Run ESLint (check)"
+run = "pnpm run lint"
+
+[tasks.lint_fix]
+description = "Run ESLint with --fix"
+run = "pnpm run lint:fix"
+
+[tasks.format]
+description = "Format files (writes changes)"
+run = "pnpm run format"
+
+[tasks.format_check]
+description = "Check formatting (no changes)"
+run = "pnpm exec prettier --check \"src/**/*.ts\" \"tests/**/*.ts\""
+
+[tasks.test]
+description = "Run Jest tests"
+run = "pnpm run test"
+
+[tasks.pre-commit]
+description = "Checks to run before committing"
+depends = ["lint", "format_check", "test"]
+run = "echo 'pre-commit ok'"
+

@@ -4,4 +4,4 @@
     "types": ["jest", "node"]
   },
   "include": ["./**/*.ts"]
-} 
+}

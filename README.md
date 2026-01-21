@@ -53,39 +53,46 @@ import {
   defaultPolicy,
   assertAllowed,
   policyLog,
-} from 'typesecure';
+} from "typesecure";
 
-const userEmail = piiText('user@example.com');
-const sessionToken = token('abc.def.ghi');
-const dbPassword = secretText(process.env.DB_PASSWORD ?? '');
+const userEmail = piiText("user@example.com");
+const sessionToken = token("abc.def.ghi");
+const dbPassword = secretText(process.env.DB_PASSWORD ?? "");
 
 // Redact before logging / serialization
 console.log(redact({ userEmail, sessionToken, dbPassword }));
-console.log(safeJsonStringify({ userEmail, sessionToken, dbPassword }, undefined, 2));
+console.log(
+  safeJsonStringify({ userEmail, sessionToken, dbPassword }, undefined, 2),
+);
 
 // Enforce policy before a boundary crossing
 const policy = defaultPolicy();
-assertAllowed(policy, 'network', { sessionToken }); // allowed
+assertAllowed(policy, "network", { sessionToken }); // allowed
 // assertAllowed(policy, 'log', { dbPassword }); // throws
 
 // Safe logging helper with enforcement
-policyLog(policy, console, 'info', publicText('login_ok'), { userEmail });
+policyLog(policy, console, "info", publicText("login_ok"), { userEmail });
 ```
 
 ### Express / Next.js examples
 
 ```typescript
 // Express middleware example
-import { safeLoggerAdapter, defaultPolicy, assertAllowed, token } from 'typesecure';
+import {
+  safeLoggerAdapter,
+  defaultPolicy,
+  assertAllowed,
+  token,
+} from "typesecure";
 
 const log = safeLoggerAdapter(console);
 const policy = defaultPolicy();
 
 app.use((req, _res, next) => {
-  const auth = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  const auth = req.headers.authorization?.replace(/^Bearer\s+/i, "");
   if (auth) {
     const t = token(auth);
-    assertAllowed(policy, 'network', { t });
+    assertAllowed(policy, "network", { t });
     log.info({ route: req.path, auth: t }); // will be redacted
   }
   next();
@@ -147,4 +154,4 @@ MIT © [Arvid Berndtsson](https://github.com/arvid-berndtsson)
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+Contributions are welcome! Please feel free to submit a Pull Request.

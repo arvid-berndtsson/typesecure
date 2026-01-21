@@ -6,17 +6,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish (patch/minor/major or specific version like 0.2.0)'
+        description: "Version to publish (patch/minor/major or specific version like 0.2.0)"
         required: true
-        default: 'patch'
+        default: "patch"
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for git push and tag creation
-      id-token: write  # Required for OIDC trusted publishing
-    
+      contents: write # Required for git push and tag creation
+      id-token: write # Required for OIDC trusted publishing
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,8 +26,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

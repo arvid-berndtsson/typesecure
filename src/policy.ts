@@ -1,7 +1,11 @@
-import { classificationOf, isClassified, type DataClassification } from './classification';
-import { redact, type RedactOptions } from './redaction';
+import {
+  classificationOf,
+  isClassified,
+  type DataClassification,
+} from "./classification";
+import { redact, type RedactOptions } from "./redaction";
 
-export type PolicyAction = 'log' | 'network' | 'storage' | 'analytics';
+export type PolicyAction = "log" | "network" | "storage" | "analytics";
 
 export type PolicyDecision = Readonly<{
   allowed: boolean;
@@ -16,7 +20,10 @@ export type Policy = Readonly<{
   redaction?: RedactOptions;
 }>;
 
-function detectedKindsDeep(value: unknown, maxDepth: number = 25): DataClassification[] {
+function detectedKindsDeep(
+  value: unknown,
+  maxDepth: number = 25,
+): DataClassification[] {
   const kinds = new Set<DataClassification>();
   const seen = new WeakSet<object>();
 
@@ -30,7 +37,7 @@ function detectedKindsDeep(value: unknown, maxDepth: number = 25): DataClassific
       return;
     }
 
-    if (typeof v === 'object' && v !== null) {
+    if (typeof v === "object" && v !== null) {
       if (seen.has(v)) return;
       seen.add(v);
       if (isClassified(v)) return; // already recorded kind above
@@ -46,21 +53,31 @@ function detectedKindsDeep(value: unknown, maxDepth: number = 25): DataClassific
 
 export function defaultPolicy(): Policy {
   const allow = {
-    log: new Set<DataClassification>(['public']),
-    analytics: new Set<DataClassification>(['public']),
-    network: new Set<DataClassification>(['public', 'token']),
-    storage: new Set<DataClassification>(['public', 'pii', 'secret', 'token', 'credential']),
+    log: new Set<DataClassification>(["public"]),
+    analytics: new Set<DataClassification>(["public"]),
+    network: new Set<DataClassification>(["public", "token"]),
+    storage: new Set<DataClassification>([
+      "public",
+      "pii",
+      "secret",
+      "token",
+      "credential",
+    ]),
   } as const;
 
   return {
-    name: 'typesecure.default',
+    name: "typesecure.default",
     allow,
-    redactBefore: new Set<PolicyAction>(['log', 'analytics']),
+    redactBefore: new Set<PolicyAction>(["log", "analytics"]),
     redaction: { guessByKey: true },
   };
 }
 
-export function decide(policy: Policy, action: PolicyAction, data: unknown): PolicyDecision {
+export function decide(
+  policy: Policy,
+  action: PolicyAction,
+  data: unknown,
+): PolicyDecision {
   const detected = detectedKindsDeep(data);
   const allowedKinds = policy.allow[action];
 
@@ -68,7 +85,7 @@ export function decide(policy: Policy, action: PolicyAction, data: unknown): Pol
   if (disallowed.length > 0) {
     return {
       allowed: false,
-      reason: `Policy '${policy.name}' disallows kinds [${disallowed.join(', ')}] for action '${action}'.`,
+      reason: `Policy '${policy.name}' disallows kinds [${disallowed.join(", ")}] for action '${action}'.`,
       detectedKinds: detected,
     };
   }
@@ -76,10 +93,14 @@ export function decide(policy: Policy, action: PolicyAction, data: unknown): Pol
   return { allowed: true, detectedKinds: detected };
 }
 
-export function assertAllowed(policy: Policy, action: PolicyAction, data: unknown): void {
+export function assertAllowed(
+  policy: Policy,
+  action: PolicyAction,
+  data: unknown,
+): void {
   const d = decide(policy, action, data);
   if (!d.allowed) {
-    throw new Error(d.reason ?? 'Policy denied action.');
+    throw new Error(d.reason ?? "Policy denied action.");
   }
 }
 
@@ -90,7 +111,11 @@ export type AuditEvent = Readonly<{
   decision: PolicyDecision;
 }>;
 
-export function audit(policy: Policy, action: PolicyAction, data: unknown): AuditEvent {
+export function audit(
+  policy: Policy,
+  action: PolicyAction,
+  data: unknown,
+): AuditEvent {
   return {
     at: Date.now(),
     policy: policy.name,
@@ -104,13 +129,14 @@ export function audit(policy: Policy, action: PolicyAction, data: unknown): Audi
  */
 export function policyLog(
   policy: Policy,
-  logger: Pick<Console, 'info' | 'warn' | 'error' | 'debug' | 'log'>,
-  level: keyof Pick<Console, 'info' | 'warn' | 'error' | 'debug' | 'log'>,
+  logger: Pick<Console, "info" | "warn" | "error" | "debug" | "log">,
+  level: keyof Pick<Console, "info" | "warn" | "error" | "debug" | "log">,
   ...args: unknown[]
 ): void {
-  assertAllowed(policy, 'log', args);
-  const shouldRedact = policy.redactBefore?.has('log') ?? false;
-  const out = shouldRedact ? args.map((a) => redact(a, policy.redaction)) : args;
+  assertAllowed(policy, "log", args);
+  const shouldRedact = policy.redactBefore?.has("log") ?? false;
+  const out = shouldRedact
+    ? args.map((a) => redact(a, policy.redaction))
+    : args;
   logger[level](...out);
 }
-
