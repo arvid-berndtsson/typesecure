@@ -1,7 +1,7 @@
 {
   "name": "typesecure",
-  "version": "0.1.0",
-  "description": "A comprehensive collection of essential cybersecurity utilities with strong typing and runtime validation",
+  "version": "0.2.0",
+  "description": "Type-safe data classification and security enforcement for TypeScript - prevent secrets and PII leaks with compile-time and runtime guarantees",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -25,13 +25,15 @@
   "keywords": [
     "typescript",
     "security",
-    "cryptography",
-    "encryption",
-    "hashing",
-    "password",
+    "data-classification",
+    "pii",
+    "secrets",
+    "redaction",
+    "policy",
     "zod",
     "typesafe",
-    "cybersecurity"
+    "privacy",
+    "compliance"
   ],
   "author": "Arvid Berndtsson",
   "license": "MIT",
@@ -46,7 +48,6 @@
   "packageManager": "pnpm@10.6.3",
   "devDependencies": {
     "@eslint/js": "^9.23.0",
-    "@types/crypto-js": "^4.2.2",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.11",
     "@typescript-eslint/eslint-plugin": "^8.27.0",
@@ -61,7 +62,6 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "crypto-js": "^4.2.0",
     "zod": "^3.24.2"
   },
   "engines": {

@@ -1,7 +1,4 @@
-// Export utility functions
-export * from "./utils/hash";
-export * from "./utils/encryption";
-export * from "./utils/password";
-
-// Export types and schemas
-export * from "./types";
+// Core: classification-first security
+export * from './classification';
+export * from './redaction';
+export * from './policy';

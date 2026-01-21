@@ -1,19 +1,29 @@
 # typesecure
 
-A focused TypeScript cryptography package that provides secure encryption and hashing utilities with strong typing and runtime validation using Zod.
+`typesecure` is a **classification-first security core** for TypeScript projects.
+
+Instead of starting with crypto primitives, it starts with what actually causes most security incidents in web apps: **data leaving the boundary it should never cross** (logs, analytics, error trackers, headers, client bundles, etc).
+
+You “type” your data as `public | pii | secret | token | credential`, and `typesecure` helps you **enforce** safe handling using TypeScript + runtime checks.
 
 ## Features
 
-- 🔐 **Strong Typing**: Built with TypeScript for complete type safety.
-- ✅ **Runtime Validation**: Uses Zod to validate inputs and ensure security.
-- 🔍 **Advanced Encryption**: AES encryption with multiple modes (CBC, CTR, GCM, ECB).
-- 🛡️ **Authenticated Encryption**: GCM mode for authenticated encryption with additional data (AAD).
-- 🔏 **Cryptographic Hashing**: SHA-256, SHA-512, SHA-3, and more.
-- 📝 **HMAC Signatures**: Create and verify message authentication codes.
-- ⏱️ **Timing-Safe Comparison**: Prevent timing attacks with constant-time string comparison.
-- 🚦 **Security Level Assessment**: Analyze and report the security level of encryption configurations.
-- 🔑 **Password Hashing**: PBKDF2 for secure password hashing with salt and configurable iterations.
-- 📦 **JSON Payload Encryption**: Helpers to safely encrypt and decrypt structured data.
+- **Classification types**: `PublicString`, `PIIString`, `SecretString`, `TokenString`, `CredentialString`.
+- **Runtime validation**: Zod-backed constructors (`secretText()`, `piiText()`, ...).
+- **Redaction**: `redact()` and `safeJsonStringify()` prevent secret/PII leakage.
+- **Policy enforcement**: `defaultPolicy()`, `assertAllowed()`, `audit()` help block unsafe crossings.
+
+## Good for / Use when
+
+- **You need to stop leaks early**: preventing secrets/PII from ending up in logs, analytics, error trackers, or client bundles.
+- **You want safe defaults**: making insecure behavior harder than secure behavior.
+- **You want guardrails at the boundary**: before logging, emitting telemetry, making network calls, or writing to storage.
+
+## Not a fit / Don’t use when
+
+- **You need a full security platform** (hosted policy registry, enterprise controls). `typesecure` is a library.
+- **You need production-grade crypto primitives**. Use well-reviewed, purpose-built libraries and treat crypto carefully.
+- **You only want compile-time types with zero runtime behavior**. `typesecure` deliberately includes runtime checks/redaction.
 
 ## Installation
 
@@ -30,130 +40,87 @@ pnpm add typesecure
 
 ## Usage
 
-### Encryption with Security Assessment
+### Classification-first data handling
 
 ```typescript
-import { encrypt, decrypt, encryptJson, decryptJson, generateKey, getSecurityLevel, SecurityLevel } from 'typesecure';
+import {
+  piiText,
+  secretText,
+  token,
+  publicText,
+  redact,
+  safeJsonStringify,
+  defaultPolicy,
+  assertAllowed,
+  policyLog,
+} from 'typesecure';
 
-// Generate a secure key
-const key = generateKey();
+const userEmail = piiText('user@example.com');
+const sessionToken = token('abc.def.ghi');
+const dbPassword = secretText(process.env.DB_PASSWORD ?? '');
 
-// Encrypt data with GCM (authenticated encryption)
-const encrypted = encrypt('Sensitive information', key, {
-  mode: 'aes-gcm',
-  aad: 'Additional authenticated data' // Optional
-});
+// Redact before logging / serialization
+console.log(redact({ userEmail, sessionToken, dbPassword }));
+console.log(safeJsonStringify({ userEmail, sessionToken, dbPassword }, undefined, 2));
 
-// Decrypt data
-const decrypted = decrypt(encrypted, key, {
-  mode: 'aes-gcm',
-  aad: 'Additional authenticated data' // Must match encryption
-});
+// Enforce policy before a boundary crossing
+const policy = defaultPolicy();
+assertAllowed(policy, 'network', { sessionToken }); // allowed
+// assertAllowed(policy, 'log', { dbPassword }); // throws
 
-// Assess security level of encryption options
-const securityLevel = getSecurityLevel({ mode: 'aes-cbc', padding: 'Pkcs7' });
-if (securityLevel === SecurityLevel.HIGH) {
-  console.log('Using high security encryption configuration');
-}
-
-// Encrypt structured JSON payloads end-to-end
-const payload = {
-  userId: 'user-123',
-  scopes: ['read', 'write'],
-  metadata: { issuedAt: Date.now() },
-};
-
-const encryptedPayload = encryptJson(payload, key, { mode: 'aes-gcm', aad: 'session' });
-const decryptedPayload = decryptJson<typeof payload>(encryptedPayload, key, { mode: 'aes-gcm', aad: 'session' });
-console.log(decryptedPayload);
+// Safe logging helper with enforcement
+policyLog(policy, console, 'info', publicText('login_ok'), { userEmail });
 ```
 
-### Secure Password Storage
+### Express / Next.js examples
 
 ```typescript
-import { hashPassword, verifyPassword } from 'typesecure';
+// Express middleware example
+import { safeLoggerAdapter, defaultPolicy, assertAllowed, token } from 'typesecure';
 
-// Hash a password with PBKDF2
-const { hash, salt, params } = hashPassword('userPassword123', {
-  algorithm: 'pbkdf2',
-  iterations: 10000,
-  saltLength: 32,
-  keyLength: 64,
-  saltEncoding: 'base64' // Optional: choose 'hex' (default) or 'base64'
-});
+const log = safeLoggerAdapter(console);
+const policy = defaultPolicy();
 
-// Store hash, salt, and params in your database
-
-// Later, verify the password
-const isValid = verifyPassword('userPassword123', hash, salt, params);
-const isInvalid = verifyPassword('wrong password', hash, salt, params);
-```
-
-### Timing-Safe Comparison and Random Bytes Generation
-
-```typescript
-import { timingSafeEqual, generateRandomBytes } from 'typesecure';
-
-// Compare strings in constant time to prevent timing attacks
-const isEqual = timingSafeEqual(userProvidedToken, storedToken);
-
-// Generate cryptographically secure random bytes
-const randomBytes = generateRandomBytes(32, 'hex');
-```
-
-### Hashing and HMAC
-
-```typescript
-import { hash, verifyHash, hmac } from 'typesecure';
-
-// Create a hash
-const hashedValue = hash('data to hash', {
-  algorithm: 'sha256',
-  encoding: 'hex'
-});
-
-// Verify a hash
-const isMatch = verifyHash('data to hash', hashedValue, {
-  algorithm: 'sha256',
-  encoding: 'hex'
-});
-
-// Create an HMAC
-const signature = hmac('message', 'secret key', {
-  algorithm: 'sha256',
-  encoding: 'base64'
+app.use((req, _res, next) => {
+  const auth = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  if (auth) {
+    const t = token(auth);
+    assertAllowed(policy, 'network', { t });
+    log.info({ route: req.path, auth: t }); // will be redacted
+  }
+  next();
 });
 ```
 
 ## API Reference
 
-### Encryption
+### Classification
 
-- `encrypt(text: string, key: string, options?: Partial<EncryptionOptions>): string`
-- `decrypt(encryptedText: string, key: string, options?: Partial<EncryptionOptions>): string`
-- `encryptJson<T>(payload: T, key: string, options?: Partial<EncryptionOptions>): string`
-- `decryptJson<T>(encryptedPayload: string, key: string, options?: Partial<EncryptionOptions>): T`
-- `generateKey(length?: number): string`
-- `getSecurityLevel(options: EncryptionOptions): SecurityLevel`
+- `publicText(value: string): PublicString`
+- `piiText(value: string): PIIString`
+- `secretText(value: string): SecretString`
+- `token(value: string): TokenString`
+- `credential(value: string): CredentialString`
+- `reveal(value): string` (intentionally explicit)
 
-### Secure Password Storage
+### Redaction
 
-- `hashPassword(password: string, options?: Partial<PasswordHashOptions>): { hash: string; salt: string; params: PasswordHashOptions }`
-- `verifyPassword(password: string, hash: string, salt: string, options?: Partial<PasswordHashOptions>): boolean`
-- `timingSafeEqual(a: string, b: string, options?: Partial<TimingSafeOptions>): boolean`
-- `generateRandomBytes(length?: number, encoding?: 'hex' | 'base64'): string`
+- `redact(value): value` (deep traversal)
+- `safeJsonStringify(value): string`
+- `safeLoggerAdapter(consoleLike)`
 
-`PasswordHashOptions` now include a `saltEncoding` field (`'hex'` by default) so you can store salts in the format that best matches your persistence strategy.
+### Policy
 
-### Hashing
-
-- `hash(input: string, options?: Partial<HashOptions>): string`
-- `verifyHash(input: string, hashedValue: string, options?: Partial<HashOptions>): boolean`
-- `hmac(input: string, key: string, options?: Partial<HashOptions>): string`
+- `defaultPolicy(): Policy`
+- `assertAllowed(policy, action, data): void`
+- `audit(policy, action, data): AuditEvent`
+- `policyLog(policy, logger, level, ...args): void`
 
 ## Security Considerations
 
-This package implements best practices for cryptographic operations, but remember that cryptography is complex. For production applications with high security requirements, consider:
+Security is as much about **preventing leaks** as it is about cryptographic correctness. `typesecure` focuses on preventing accidental secret/PII exposure across common boundaries.
+
+If you need cryptography for production-grade requirements, prefer well-reviewed primitives and consult a security professional. For production applications with high security requirements, consider:
 
 1. Consulting a security professional
 2. Using specialized security libraries
