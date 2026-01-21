@@ -76,15 +76,15 @@ jobs:
               # Specific version provided
               VERSION="$INPUT_VERSION"
             else
-              # Bump version (patch/minor/major)
-              VERSION=$(npm version "$INPUT_VERSION" --no-git-tag-version | sed 's/^v//')
+              # Bump version (patch/minor/major) using pnpm
+              VERSION=$(pnpm version "$INPUT_VERSION" --no-git-tag-version | sed 's/^v//')
             fi
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
 
       - name: Update package.json version
         run: |
-          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+          pnpm version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Publish to npm
         run: |
@@ -98,7 +98,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          git add package.json package-lock.json pnpm-lock.yaml
+          git add package.json pnpm-lock.yaml
           git commit -m "chore: bump version to ${{ steps.version.outputs.version }}" || exit 0
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "$BRANCH"

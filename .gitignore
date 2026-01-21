@@ -42,6 +42,9 @@ coverage/
 # Optional npm cache directory
 .npm
 
+# npm lockfile (we use pnpm)
+package-lock.json
+
 # Optional eslint cache
 .eslintcache
 
