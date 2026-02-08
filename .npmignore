@@ -25,4 +25,13 @@ SECURITY.md
 # Misc
 .DS_Store
 *.log
-node_modules/ 
+node_modules/
+
+# Local/benchmark datasets (must never be published)
+data/
+dataset/
+datasets/
+fixtures/
+test-fixtures/
+benchmarks/
+tmp/

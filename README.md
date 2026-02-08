@@ -146,7 +146,35 @@ To contribute to this project:
 3. Run tests with `pnpm test`
 4. Build the package with `pnpm build`
 
+### Optional: external dataset setup
+
+For larger redaction/policy experiments (Enron + Synthea FHIR), fetch datasets locally:
+
+```bash
+pnpm data:setup
+```
+
+This command downloads and extracts to:
+
+- `data/enron-maildir`
+- `data/synthea_sample_data_fhir_latest`
+
+Notes:
+
+- `data/` is gitignored and not published to npm.
+- You can override source URLs with `ENRON_URL=...` and/or `SYNTHEA_FHIR_URL=...`.
+- You can change destination with `DATA_DIR=/path/to/data`.
+
 This project uses TypeScript for type safety, Jest for testing, and ESLint for code quality.
+
+## Dataset Acknowledgements
+
+We use these public datasets for redaction and policy testing:
+
+- [CMU Enron Email Dataset](https://www.cs.cmu.edu/~enron/)
+- [Synthea Sample Data](https://github.com/synthetichealth/synthea-sample-data/)
+
+Personal note: I am especially interested in the historical context around Enron, including how it was able to happen and the improvements in governance and controls that followed.
 
 ## License
 
