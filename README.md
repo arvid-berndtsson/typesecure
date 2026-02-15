@@ -27,6 +27,8 @@ You “type” your data as `public | pii | secret | token | credential`, and `t
 
 ## Installation
 
+Requires Node.js `>=18.18.0`.
+
 ```bash
 # Using npm
 npm install typesecure
@@ -113,8 +115,39 @@ app.use((req, _res, next) => {
 ### Redaction
 
 - `redact(value): value` (deep traversal)
+- `redactText(value): string` (mask sensitive fragments in plain text)
+- `detectText(value): StringDetection[]` (return ranges/kinds for audit workflows)
 - `safeJsonStringify(value): string`
 - `safeLoggerAdapter(consoleLike)`
+- Redaction options:
+  - `guessByKey` (default `true`): redact suspicious keys like `password`, `token`, `apiKey`.
+  - `guessByValue` (default `true`): auto-detect and redact sensitive-looking values.
+  - `useDefaultValueDetector` (default `true`): keep built-in rule-based detectors on/off.
+  - `stringDetectors`: add custom detectors (for NER/ML or domain-specific logic).
+  - `minDetectionConfidence` (default `0`): ignore low-confidence custom detections.
+- Value detection masks only the sensitive fragments inside a larger string (instead of replacing the whole text), including:
+  - PII: email, phone, SSN, date of birth (`YYYY-MM-DD`), IPv4 address, payment card numbers (Luhn-validated).
+  - Secrets/tokens: JWTs, private key PEM blocks, GitHub tokens, AWS access keys, Stripe secret keys, OpenAI-style `sk-...` keys, credential pairs (`user:pass`), high-entropy token-like strings.
+
+Example custom detector (NER/ML-style integration):
+
+```typescript
+const out = redact(
+  { text: "Customer Jane Doe uses jane@example.com" },
+  {
+    stringDetectors: [
+      (value) => {
+        const name = "Jane Doe";
+        const idx = value.indexOf(name);
+        return idx >= 0
+          ? [{ start: idx, end: idx + name.length, kind: "pii", confidence: 0.92, source: "ml.ner" }]
+          : [];
+      },
+    ],
+    minDetectionConfidence: 0.8,
+  },
+);
+```
 
 ### Policy
 
@@ -145,8 +178,46 @@ To contribute to this project:
 2. Install dependencies with `pnpm install`
 3. Run tests with `pnpm test`
 4. Build the package with `pnpm build`
+5. Run Enron dataset integration tests with `pnpm test:data`
+
+### Optional: external dataset setup
+
+For larger redaction/policy experiments (Enron + Synthea FHIR), fetch datasets locally:
+
+```bash
+pnpm data:setup
+```
+
+This command downloads and extracts to:
+
+- `data/enron-maildir`
+- `data/synthea_sample_data_fhir_latest`
+
+Notes:
+
+- `data/` is gitignored and not published to npm.
+- `pnpm test` excludes dataset suites by default.
+- `pnpm test:data` runs Enron dataset tests with verbose output.
+- `pnpm test:data:synthea` runs Synthea-specific dataset tests.
+- `pnpm test:data:all` runs all dataset suites.
+- You can override source URLs with `ENRON_URL=...` and/or `SYNTHEA_FHIR_URL=...`.
+- You can change destination with `DATA_DIR=/path/to/data`.
+
+Dataset sources:
+
+- Enron: [https://www.cs.cmu.edu/~enron/](https://www.cs.cmu.edu/~enron/)
+- Synthea: [https://github.com/synthetichealth/synthea-sample-data/](https://github.com/synthetichealth/synthea-sample-data/)
 
 This project uses TypeScript for type safety, Jest for testing, and ESLint for code quality.
+
+## Dataset Acknowledgements
+
+We use these public datasets for redaction and policy testing:
+
+- [CMU Enron Email Dataset](https://www.cs.cmu.edu/~enron/)
+- [Synthea Sample Data](https://github.com/synthetichealth/synthea-sample-data/)
+
+Personal note: I am especially interested in the historical context around Enron, including how it was able to happen and the improvements in governance and controls that followed.
 
 ## License
 

@@ -4,6 +4,14 @@ import {
   reveal,
   type DataClassification,
 } from "./classification";
+import {
+  applyDetectionsToString,
+  collectStringDetections,
+  type StringDetectionOptions,
+} from "./detectors/engine";
+import type { StringDetection, StringDetector } from "./detectors/types";
+
+export type { StringDetection, StringDetector } from "./detectors/types";
 
 export type RedactOptions = Readonly<{
   /**
@@ -11,6 +19,26 @@ export type RedactOptions = Readonly<{
    * Defaults to true.
    */
   guessByKey?: boolean;
+  /**
+   * If true, redact suspicious string values even when keys are not suspicious.
+   * Defaults to true.
+   */
+  guessByValue?: boolean;
+  /**
+   * Additional string detectors (for custom heuristics, NER, ML models, etc).
+   * Detectors return match ranges to mask in text.
+   */
+  stringDetectors?: readonly StringDetector[];
+  /**
+   * If false, disables the built-in rule-based value detector.
+   * Defaults to true.
+   */
+  useDefaultValueDetector?: boolean;
+  /**
+   * Minimum confidence for detections from string detectors.
+   * Defaults to 0.
+   */
+  minDetectionConfidence?: number;
   /**
    * Placeholder format for redacted values.
    * Defaults to "[REDACTED:<kind>]".
@@ -21,7 +49,8 @@ export type RedactOptions = Readonly<{
    * Defaults to 25.
    */
   maxDepth?: number;
-}>;
+}> &
+  StringDetectionOptions;
 
 const DEFAULT_SUSPICIOUS_KEY =
   /pass(word)?|pwd|secret|token|api[_-]?key|auth|bearer|cookie|session|private[_-]?key|ssh|credential/i;
@@ -41,6 +70,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 export function redact<T>(value: T, options?: RedactOptions): T {
   const guessByKey = options?.guessByKey ?? true;
+  const guessByValue = options?.guessByValue ?? true;
   const placeholder = options?.placeholder ?? defaultPlaceholder;
   const maxDepth = options?.maxDepth ?? 25;
 
@@ -69,6 +99,16 @@ export function redact<T>(value: T, options?: RedactOptions): T {
       // fall through for objects/arrays
     }
 
+    if (guessByValue && typeof v === "string") {
+      const detections = collectStringDetections(
+        v,
+        { keyHint, depth },
+        options,
+      );
+      const masked = applyDetectionsToString(v, detections, placeholder);
+      if (masked !== v) return masked;
+    }
+
     if (Array.isArray(v)) {
       return v.map((item) => walk(item, depth + 1));
     }
@@ -93,6 +133,35 @@ export function redact<T>(value: T, options?: RedactOptions): T {
   };
 
   return walk(value, 0) as T;
+}
+
+export function detectText(
+  value: string,
+  options?: Pick<
+    RedactOptions,
+    "useDefaultValueDetector" | "stringDetectors" | "minDetectionConfidence"
+  >,
+): StringDetection[] {
+  return collectStringDetections(value, { depth: 0 }, options);
+}
+
+export function redactText(
+  value: string,
+  options?: Pick<
+    RedactOptions,
+    | "guessByValue"
+    | "useDefaultValueDetector"
+    | "stringDetectors"
+    | "minDetectionConfidence"
+    | "placeholder"
+  >,
+): string {
+  const guessByValue = options?.guessByValue ?? true;
+  if (!guessByValue) return value;
+
+  const placeholder = options?.placeholder ?? defaultPlaceholder;
+  const detections = detectText(value, options);
+  return applyDetectionsToString(value, detections, placeholder);
 }
 
 export function safeJsonStringify(

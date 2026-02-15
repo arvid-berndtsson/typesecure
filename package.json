@@ -13,7 +13,14 @@
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "test": "jest --config jest.config.js",
+    "data:setup": "bash scripts/setup-datasets.sh",
+    "test": "jest --config jest.config.js --testPathIgnorePatterns tests/datasets",
+    "test:data": "pnpm run test:data:enron",
+    "test:data:enron": "jest --config jest.datasets.config.js --runInBand --verbose tests/datasets/enron.dataset.test.ts",
+    "test:data:enron:full": "jest --config jest.datasets.config.js --runInBand --verbose tests/datasets/enron.fullscan.test.ts",
+    "test:data:synthea": "jest --config jest.datasets.config.js --runInBand --verbose tests/datasets/synthea.dataset.test.ts",
+    "test:data:all": "jest --config jest.datasets.config.js --runInBand --verbose tests/datasets",
+    "test:datasets": "pnpm run test:data:all",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
@@ -65,6 +72,6 @@
     "zod": "^3.25.76"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.18.0"
   }
 }

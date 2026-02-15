@@ -25,6 +25,7 @@ pnpm-debug.log*
 
 # Testing
 coverage/
+data/
 
 # Editor directories and files
 .idea/
