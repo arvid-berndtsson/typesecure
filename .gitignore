@@ -54,3 +54,7 @@ package-lock.json
 
 # pnpm store
 .pnpm-store/ 
+
+# Project data
+/data
+

@@ -2,7 +2,7 @@ name: Publish to npm
 
 on:
   release:
-    types: [created]
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: write # Required for git push and tag creation
       id-token: write # Required for OIDC trusted publishing
+      attestations: write # Ensure provenance/attestation metadata can be emitted
 
     steps:
       - name: Checkout code
