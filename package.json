@@ -23,6 +23,7 @@
     "test:datasets": "pnpm run test:data:all",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
+    "test:smoke:observability": "ts-node scripts/observability-smoke-test.ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepublishOnly": "pnpm run lint && pnpm run test && pnpm run build",
     "preversion": "pnpm run lint",

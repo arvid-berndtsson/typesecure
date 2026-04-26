@@ -156,6 +156,62 @@ const out = redact(
 - `audit(policy, action, data): AuditEvent`
 - `policyLog(policy, logger, level, ...args): void`
 
+### Observability (Azure-ready)
+
+- `defaultTelemetryConfig(environment)`
+- `telemetryConfigFromEnv(process.env)`
+- `createTelemetryRecorder(config, options)`
+- `createAzureApplicationInsightsSink(client, { dryRun, onEmit })`
+- `assessAzureReadiness(input)`
+- `buildIncidentForensicsSummary(events)`
+- `detectTelemetryAlerts(events, rules)`
+
+Example App Insights integration:
+
+```typescript
+import appInsights from "applicationinsights";
+import {
+  createAzureApplicationInsightsSink,
+  createTelemetryRecorder,
+  telemetryConfigFromEnv,
+} from "typesecure";
+
+appInsights
+  .setup(process.env.APPLICATIONINSIGHTS_CONNECTION_STRING)
+  .start();
+
+const aiSink = createAzureApplicationInsightsSink(
+  appInsights.defaultClient,
+);
+const recorder = createTelemetryRecorder(telemetryConfigFromEnv(process.env), {
+  auditSinks: [aiSink],
+  logSinks: [aiSink],
+});
+```
+
+For zero-cost verification (no network writes), use dry run:
+
+```typescript
+const aiSink = createAzureApplicationInsightsSink(appInsights.defaultClient, {
+  dryRun: true,
+  onEmit: (envelope) => {
+    console.log(envelope.name);
+  },
+});
+```
+
+Local smoke test (no Azure spend):
+
+```bash
+pnpm test:smoke:observability
+```
+
+You can also test attack reconstruction and local detections fully offline through Jest:
+
+```bash
+pnpm test
+```
+
 ## Security Considerations
 
 Security is as much about **preventing leaks** as it is about cryptographic correctness. `typesecure` focuses on preventing accidental secret/PII exposure across common boundaries.
