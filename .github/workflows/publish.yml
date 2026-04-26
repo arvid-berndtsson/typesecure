@@ -119,7 +119,7 @@ jobs:
 
       - name: Publish to JSR
         # JSR uses GitHub OIDC in Actions; no token secret is required.
-        run: npx jsr publish
+        run: npx jsr publish --allow-dirty
 
       - name: Create git tag and push
         if: github.event_name == 'workflow_dispatch' && success()
