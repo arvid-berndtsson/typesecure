@@ -7,6 +7,10 @@ export type DataClassification =
   | "token"
   | "credential";
 
+// Public aliases for consumers who prefer shorter naming.
+export type Kind = DataClassification;
+export type Classification = DataClassification;
+
 const TYPESECURE_SYMBOL: unique symbol = Symbol.for(
   "typesecure.classified",
 ) as unknown as typeof TYPESECURE_SYMBOL;

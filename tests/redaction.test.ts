@@ -4,6 +4,7 @@
 import {
   detectText,
   piiText,
+  publicText,
   redact,
   redactText,
   safeJsonStringify,
@@ -46,6 +47,35 @@ describe("Redaction", () => {
     expect(s).not.toContain("abc");
   });
 
+  test("preserves classified public text as plain output", () => {
+    const payload = {
+      note: publicText("ok"),
+      nested: { status: publicText("still-ok") },
+    };
+
+    const r = redact(payload) as Record<string, unknown>;
+    expect(r.note).toBe("ok");
+    expect((r.nested as Record<string, unknown>).status).toBe("still-ok");
+  });
+
+  test("keeps existing redaction placeholders stable on repeated runs", () => {
+    const payload = {
+      apiKey: secretText("sk-abc123def456ghi789"),
+      bearer: token("abc.def.ghi"),
+      note: publicText("safe"),
+    };
+
+    const once = redact(payload) as Record<string, unknown>;
+    const twice = redact(once) as Record<string, unknown>;
+
+    expect(once.apiKey).toBe("[REDACTED:secret]");
+    expect(once.bearer).toBe("[REDACTED:token]");
+    expect(once.note).toBe("safe");
+    expect(twice.apiKey).toBe("[REDACTED:secret]");
+    expect(twice.bearer).toBe("[REDACTED:token]");
+    expect(twice.note).toBe("safe");
+  });
+
   test("auto-detects sensitive values even with non-suspicious keys", () => {
     const payload = {
       notes: "reach me at user@example.com",
@@ -57,6 +87,17 @@ describe("Redaction", () => {
     expect(r.notes).toBe("reach me at [REDACTED:pii]");
     expect(r.blob).toBe("[REDACTED:token]");
     expect(r.cert).toBe("[REDACTED:secret]");
+  });
+
+  test("detects short JWT-like values with JSON header prefix", () => {
+    const payload = {
+      freeform:
+        "Contact bob@example.com or call 415-555-1212, jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig",
+    };
+    const r = redact(payload) as Record<string, unknown>;
+    expect(r.freeform).toBe(
+      "Contact [REDACTED:pii] or call [REDACTED:pii], jwt [REDACTED:token]",
+    );
   });
 
   test("masks sensitive sections while keeping surrounding text", () => {
@@ -198,5 +239,11 @@ describe("Redaction", () => {
     const text = "Notes: user@example.com is primary contact.";
     const out = redactText(text);
     expect(out).toBe("Notes: [REDACTED:pii] is primary contact.");
+  });
+
+  test("passes through top-level primitives while still masking sensitive strings", () => {
+    expect(redact(42)).toBe(42);
+    expect(redact(null)).toBeNull();
+    expect(redact("email user@example.com")).toBe("email [REDACTED:pii]");
   });
 });

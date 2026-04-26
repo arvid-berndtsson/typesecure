@@ -54,6 +54,7 @@ export type RedactOptions = Readonly<{
 
 const DEFAULT_SUSPICIOUS_KEY =
   /pass(word)?|pwd|secret|token|api[_-]?key|auth|bearer|cookie|session|private[_-]?key|ssh|credential/i;
+const REDACTED_PLACEHOLDER_RE = /\[REDACTED:[^\]]+\]/;
 
 function defaultPlaceholder(kind: DataClassification | "unknown"): string {
   return `[REDACTED:${kind}]`;
@@ -80,7 +81,10 @@ export function redact<T>(value: T, options?: RedactOptions): T {
     if (depth > maxDepth) return placeholder("unknown");
 
     const kind = classificationOf(v);
-    if (kind) return placeholder(kind);
+    if (kind) {
+      if (kind === "public" && isClassified(v)) return reveal(v);
+      return placeholder(kind);
+    }
 
     if (guessByKey && keyHint && DEFAULT_SUSPICIOUS_KEY.test(keyHint)) {
       // If the value is classified we already handled it above.
@@ -94,6 +98,10 @@ export function redact<T>(value: T, options?: RedactOptions): T {
         t === "boolean" ||
         t === "bigint"
       ) {
+        if (t === "string") {
+          const stringValue = v as string;
+          if (REDACTED_PLACEHOLDER_RE.test(stringValue)) return stringValue;
+        }
         return placeholder("unknown");
       }
       // fall through for objects/arrays
