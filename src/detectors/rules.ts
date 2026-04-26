@@ -9,6 +9,8 @@ const IPV4_RE = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
 const CREDIT_CARD_RE = /\b(?:\d[ -]*?){13,19}\b/g;
 const JWT_RE =
   /\b[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\b/g;
+const JWT_SHORT_JSON_RE =
+  /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{3,}\b/g;
 const PRIVATE_KEY_BLOCK_RE =
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g;
 const AWS_ACCESS_KEY_RE = /\bAKIA[0-9A-Z]{16}\b/g;
@@ -99,6 +101,7 @@ export const defaultRuleStringDetector: StringDetector = (value) => {
       "rule.private-key",
     ),
     ...detectRegexRanges(value, JWT_RE, "token", "rule.jwt"),
+    ...detectRegexRanges(value, JWT_SHORT_JSON_RE, "token", "rule.jwt"),
     ...detectRegexRanges(
       value,
       AWS_ACCESS_KEY_RE,
