@@ -1,4 +1,12 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -76,6 +84,38 @@ export function sampleEnronEmails(limit: number): ParsedEmail[] {
     const raw = readFileSync(file, "utf8");
     return parseEmail(raw, file);
   });
+}
+
+export function createEnronSubsetFixture(count: number): Readonly<{
+  rootDir: string;
+  files: string[];
+}> {
+  const sourceRoot = datasetRoot("enron-maildir");
+  const all = listFilesRecursive(sourceRoot, count * 6).filter(
+    (file) => /\/\d+\.$/.test(file) || /\/\d+$/.test(file),
+  );
+  const selected = all.slice(0, count);
+
+  const rootDir = path.join(
+    os.tmpdir(),
+    `typesecure-enron-subset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
+  mkdirSync(rootDir, { recursive: true });
+
+  for (const src of selected) {
+    const relative = path.relative(sourceRoot, src);
+    const destination = path.join(rootDir, relative);
+    mkdirSync(path.dirname(destination), { recursive: true });
+    copyFileSync(src, destination);
+  }
+
+  return {
+    rootDir,
+    files: selected.map((src) => {
+      const relative = path.relative(sourceRoot, src);
+      return path.join(rootDir, relative);
+    }),
+  };
 }
 
 export function sampleSyntheaJson(limit: number): unknown[] {

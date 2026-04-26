@@ -12,6 +12,8 @@ You “type” your data as `public | pii | secret | token | credential`, and `t
 - **Runtime validation**: Zod-backed constructors (`secretText()`, `piiText()`, ...).
 - **Redaction**: `redact()` and `safeJsonStringify()` prevent secret/PII leakage.
 - **Policy enforcement**: `defaultPolicy()`, `assertAllowed()`, `audit()` help block unsafe crossings.
+- **Classification and scanning**: `classifyDeep()`, `scanText()`, `scanFile()`, `scanDirectory()` for logs/files.
+- **CLI scanning**: `typesecure scan` with baseline diff, CI exit codes, and autofix modes.
 
 ## Good for / Use when
 
@@ -155,6 +157,43 @@ const out = redact(
 - `assertAllowed(policy, action, data): void`
 - `audit(policy, action, data): AuditEvent`
 - `policyLog(policy, logger, level, ...args): void`
+
+### Classification & Scanning
+
+- `classifyDeep(value, options)` returns structured findings with path/kind/confidence/source.
+- `scanText(value, options)` scans plain text and returns findings plus redacted text.
+- `scanFile(filePath, options)` scans one file with optional fix mode.
+- `scanDirectory(paths, options)` scans recursively with extension filters, baseline diff, and block findings.
+- `createBaseline(findings)`, `serializeBaseline(...)`, `parseBaseline(...)`, `applyBaselineDiff(...)`.
+
+Detector packs:
+
+- `all` / `core`: full default detection set
+- `compliance`: PII + credential-oriented detections
+- `cloud-keys`: cloud token/secret detectors (AWS/GitHub/Stripe/OpenAI/private keys/JWT/high-entropy)
+
+Confidence workflow:
+
+- `high`: block (for configured blocked kinds)
+- `medium`: review
+- `low`: info
+
+### CLI
+
+```bash
+# scan current directory
+typesecure scan .
+
+# CI mode (exit 1 on blocking findings)
+typesecure scan . --ci
+
+# write baseline and later show only new findings
+typesecure scan . --write-baseline .typesecure-baseline.json
+typesecure scan . --baseline .typesecure-baseline.json --new-only
+
+# sanitize files without editing originals
+typesecure scan ./logs --fix-out-dir ./sanitized-logs
+```
 
 ## Security Considerations
 
