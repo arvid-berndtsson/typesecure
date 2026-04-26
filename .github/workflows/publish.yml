@@ -4,28 +4,23 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to publish (patch/minor/major or specific version like 0.2.0)"
-        required: true
-        default: "patch"
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required for git push and tag creation
+      contents: read
       id-token: write # Required for OIDC trusted publishing
       attestations: write # Ensure provenance/attestation metadata can be emitted
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           # registry-url not needed with trusted publishing (OIDC)
@@ -42,7 +37,7 @@ jobs:
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -61,54 +56,27 @@ jobs:
       - name: Build package
         run: pnpm run build
 
-      - name: Determine and update version
-        id: version
+      - name: Validate version metadata
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            # Extract version from release tag (e.g., v0.2.0 -> 0.2.0)
-            VERSION=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//')
-          else
-            # For workflow_dispatch, use the input
-            INPUT_VERSION="${{ github.event.inputs.version }}"
-            CURRENT_VERSION=$(node -p "require('./package.json').version")
-            
-            if [[ "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              # Specific version provided
-              VERSION="$INPUT_VERSION"
-            else
-              # Calculate next version using semver logic
-              # Split current version into parts
-              IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
-              MAJOR="${VERSION_PARTS[0]}"
-              MINOR="${VERSION_PARTS[1]}"
-              PATCH="${VERSION_PARTS[2]}"
-              
-              case "$INPUT_VERSION" in
-                major)
-                  MAJOR=$((MAJOR + 1))
-                  MINOR=0
-                  PATCH=0
-                  ;;
-                minor)
-                  MINOR=$((MINOR + 1))
-                  PATCH=0
-                  ;;
-                patch)
-                  PATCH=$((PATCH + 1))
-                  ;;
-              esac
-              
-              VERSION="$MAJOR.$MINOR.$PATCH"
-            fi
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          JSR_VERSION=$(node -p "require('./jsr.json').version")
+
+          if [ "$PKG_VERSION" != "$JSR_VERSION" ]; then
+            echo "Version mismatch: package.json=$PKG_VERSION jsr.json=$JSR_VERSION"
+            exit 1
           fi
-          
-          # Update package.json and jsr.json versions directly without triggering lifecycle scripts
-          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
-          node -e "const fs = require('fs'); const jsr = JSON.parse(fs.readFileSync('jsr.json', 'utf8')); jsr.version = '$VERSION'; fs.writeFileSync('jsr.json', JSON.stringify(jsr, null, 2) + '\n');"
-          
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Updated version to $VERSION"
+
+          if [ "${{ github.event_name }}" == "release" ]; then
+            TAG_VERSION=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//')
+            if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+              echo "Release tag version ($TAG_VERSION) does not match package/jsr version ($PKG_VERSION)."
+              exit 1
+            fi
+            echo "Validated release tag and package versions: $PKG_VERSION"
+          else
+            echo "Manual publish for pre-versioned source at version: $PKG_VERSION"
+          fi
 
       - name: Publish to npm
         run: |
@@ -119,18 +87,4 @@ jobs:
 
       - name: Publish to JSR
         # JSR uses GitHub OIDC in Actions; no token secret is required.
-        run: npx jsr publish --allow-dirty
-
-      - name: Create git tag and push
-        if: github.event_name == 'workflow_dispatch' && success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          git add package.json jsr.json pnpm-lock.yaml
-          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}" || exit 0
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "$BRANCH"
-          git push origin "v${{ steps.version.outputs.version }}"
+        run: npx jsr publish
