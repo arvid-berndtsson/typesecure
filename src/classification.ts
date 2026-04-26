@@ -62,22 +62,22 @@ export function reveal<T>(value: Classified<DataClassification, T>): T {
 
 // ---- Constructors (Zod-backed) ----
 
-const NonEmptyString = z.string().min(1);
+const NonEmptyString: z.ZodString = z.string().min(1);
 
-export const PublicStringSchema = NonEmptyString.transform((v) =>
-  makeClassified("public", v),
-);
-export const PIIStringSchema = NonEmptyString.transform((v) =>
-  makeClassified("pii", v),
-);
-export const SecretStringSchema = NonEmptyString.transform((v) =>
-  makeClassified("secret", v),
-);
-export const TokenStringSchema = NonEmptyString.transform((v) =>
-  makeClassified("token", v),
-);
-export const CredentialStringSchema = NonEmptyString.transform((v) =>
-  makeClassified("credential", v),
+export const PublicStringSchema: z.ZodType<PublicString, z.ZodTypeDef, string> =
+  NonEmptyString.transform((v): PublicString => makeClassified("public", v));
+export const PIIStringSchema: z.ZodType<PIIString, z.ZodTypeDef, string> =
+  NonEmptyString.transform((v): PIIString => makeClassified("pii", v));
+export const SecretStringSchema: z.ZodType<SecretString, z.ZodTypeDef, string> =
+  NonEmptyString.transform((v): SecretString => makeClassified("secret", v));
+export const TokenStringSchema: z.ZodType<TokenString, z.ZodTypeDef, string> =
+  NonEmptyString.transform((v): TokenString => makeClassified("token", v));
+export const CredentialStringSchema: z.ZodType<
+  CredentialString,
+  z.ZodTypeDef,
+  string
+> = NonEmptyString.transform(
+  (v): CredentialString => makeClassified("credential", v),
 );
 
 export function publicText(value: string): PublicString {
