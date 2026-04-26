@@ -27,7 +27,7 @@ jobs:
           # npm will auto-detect the OIDC environment and registry
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.6.3
 
